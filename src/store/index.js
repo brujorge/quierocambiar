@@ -53,33 +53,7 @@ const actions = {
     router.push('/signin')
   },
   getCambistas({commit, rootState}, payload){
-    return new Promise((resolve, reject) => {
-      const cambistas = {
-        type: 'FeatureCollection',
-        features: []
-      }
-      const colRef = rootState.db.collection('cambistas').get().then(querySnapshot => {
-        querySnapshot.forEach(doc => {
-          doc.data().id = doc.id
-          let cambista = doc.data()
-          cambistas.features.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: cambista.ubicacion
-            },
-            properties: {
-              name: cambista.name,
-              estado: cambista.estado,
-              compra: cambista.compra,
-              venta: cambista.venta,
-              icon: 'monument',
-            }
-          })
-        })
-      })
-      resolve(commit('SET_CAMBISTAS', cambistas))
-    })
+     
   },
   getPosition({commit, rootState}, payload){
     commit('SET_UBICACION', payload)
