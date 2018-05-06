@@ -38,6 +38,11 @@ export default {
         this.getCambistas()
         this.mapa.addControl(new mapboxgl.NavigationControl())
         this.mapa.addControl(new mapboxgl.FullscreenControl());
+        var el = document.createElement('div');
+        el.className = 'marker';
+        new mapboxgl.Marker(el)
+        .setLngLat([this.ubicacion.lng, this.ubicacion.lat])
+        .addTo(this.mapa);
         })
       
     },
@@ -82,13 +87,14 @@ export default {
           });
           this.mapa.on('click', 'cambistas', (e) => {
             var coordinates = e.features[0].geometry.coordinates.slice();
-            var name = e.features[0].properties.name;
+            var properties = e.features[0].properties;
+            
             while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
                 coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
             }
             new mapboxgl.Popup()
                 .setLngLat(coordinates)
-                .setHTML(name)
+                .setHTML(`<h2>${properties.name}</h2><p>COMPRA: S/${properties.compra}</p><p>COMPRA: S/${properties.venta}</p>`)
                 .addTo(this.mapa);
           });
           this.mapa.on('mouseenter', 'places', () => {
@@ -97,12 +103,12 @@ export default {
           this.mapa.on('mouseleave', 'places', () => {
               map.getCanvas().style.cursor = '';
           });
-
+          this.$store.state.db.collection('cambistas').onSnapshot(snapshot=> {
           var nuevosCambistas = {
             type: 'FeatureCollection',
             features: []
           };
-          this.$store.state.db.collection('cambistas').onSnapshot(snapshot=> {
+            console.log(snapshot);
             snapshot.forEach(doc => {
               nuevosCambistas.features.push({
                 type: 'Feature',
@@ -128,10 +134,10 @@ export default {
         compra: 11111,
         venta: 22222,
         estado: 1,
-        name: 'TEST',
+        name: 'SALUDOS DESDE OTRO CLIENTE',
         ubicacion: {
-          lng: -77.0193573,
-          lat: -12.17214
+          lng: -77.006709,
+          lat: -12.1893128
         }
       })
     }
@@ -157,11 +163,11 @@ export default {
 </script>
 <style>
  #mapa {
-  min-width:1000px;
+  min-width:100%;
   height: 500px;
   } 
-  .marker {
-  background-image: url("https://i.imgur.com/saA2A5g.png");
+.marker {
+  background-image: url("../assets/me.png");
   background-size: cover;
   width: 50px;
   height: 50px;

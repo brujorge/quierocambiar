@@ -33,11 +33,25 @@ const mutations = {
   }
 }
 const actions = {
+  userSignUp({commit, rootState}, payload){
+    firebase.auth().createUserWithEmailAndPassword(payload.email, payload.password)
+    .then((firebaseUser)=>{
+      firebaseUser.updateProfile({
+        photoURL: "https://i.imgur.com/n5kMEsA.png",
+        displayName: payload.username
+      })
+      router.push('/signin')
+    }).catch(error => {
+      commit('SET_ERROR', error)
+    })
+    
+  },
   userSignIn({commit, rootState},payload){
     commit('SET_LOADING', true)
     firebase.auth().signInWithEmailAndPassword(payload.email, payload.password)
     .then(firebaseUser => {
-      commit('SET_USER',{email: firebaseUser.email, uid:firebaseUser.uid})
+      console.log(firebaseUser);
+      commit('SET_USER',{email: firebaseUser.email, uid:firebaseUser.uid, photoURL: firebaseUser.photoURL, username: firebaseUser.displayName})
       router.push({path:'/'})
       commit('SET_LOADING', false)
     })
@@ -52,11 +66,12 @@ const actions = {
     commit('SET_USER', null)
     router.push('/signin')
   },
-  getCambistas({commit, rootState}, payload){
-     
-  },
   getPosition({commit, rootState}, payload){
     commit('SET_UBICACION', payload)
+  },
+  autoSignIn({commit}, firebaseUser){
+    console.log(firebaseUser);
+    commit('SET_USER', {email: firebaseUser.email, uid:firebaseUser.uid, photoURL: firebaseUser.photoURL, username:firebaseUser.displayName})
   }
 }
 const getters = {

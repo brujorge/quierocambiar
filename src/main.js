@@ -5,16 +5,26 @@ import App from './App'
 import Vuetify from 'vuetify'
 import router from './router'
 import store from './store'
+import firebase from 'firebase'
 import 'vuetify/dist/vuetify.min.css'
 
 Vue.config.productionTip = false
 
 Vue.use(Vuetify)
 /* eslint-disable no-new */
-new Vue({
-  el: '#app',
-  router,
-  store,
-  components: { App },
-  template: '<App/>'
+const unsubscribe = firebase.auth()
+.onAuthStateChanged(firebaseUser => {
+  new Vue({
+    el: '#app',
+    store,
+    router,
+    components: { App },
+    template: '<App/>',
+    created(){
+      if(firebaseUser){
+        store.dispatch('autoSignIn', firebaseUser)
+      }
+    }
+  })
+  unsubscribe()
 })
