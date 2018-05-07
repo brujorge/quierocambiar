@@ -1,8 +1,35 @@
 <template>
-<v-app>
-  <v-navigation-drawer app fixed  v-model="drawer"></v-navigation-drawer>
-  <v-toolbar app>
-    <v-toolbar-side-icon @click="drawer = !drawer"></v-toolbar-side-icon>
+<v-app green>
+  <v-navigation-drawer v-if="isAuthenticated" app fixed clipped  v-model="drawer">
+      <v-list dense>
+        <v-list-tile to="/">
+          <v-list-tile-action>
+            <v-icon>home</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>Dashboard</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+        <v-list-tile to="/about">
+          <v-list-tile-action>
+            <v-icon>help</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>About</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+        <v-list-tile to="/contact">
+          <v-list-tile-action>
+            <v-icon>contact_mail</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>Contáctanos</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+      </v-list>
+  </v-navigation-drawer>
+  <v-toolbar clipped-left app color="blue darken-3" dark>
+    <v-toolbar-side-icon v-if="isAuthenticated" @click="drawer = !drawer"></v-toolbar-side-icon>
     <v-toolbar-title>quieroCambiar</v-toolbar-title>
     <v-spacer></v-spacer>
     <v-toolbar-items>
@@ -61,6 +88,6 @@ export default {
 
 <style>
 .toolbar.toolbar--fixed {
-  z-index: 999
+  z-index: 3
 }
 </style>

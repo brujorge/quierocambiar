@@ -5,6 +5,8 @@ Vue.use(Router)
 
 const routerOptions = [
   {path: '/signin', name: 'sign-in', component: 'SignIn',},
+  {path: '/about', name: 'about', component: 'About',},
+  {path: '/contact', name: 'contact', component: 'Contact',},
   {path: '/signup', name: 'sign-up', component: 'SignUp'},
   {path: '/', name: 'Dashboard', component: 'Dashboard', meta:{requiresAuth:true}},
 ]

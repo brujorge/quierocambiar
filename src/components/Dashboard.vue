@@ -1,7 +1,57 @@
 <template>
     <v-container>
       <v-flex>
-        <v-btn @click.native="addCambista">Add cambista</v-btn>
+        <v-dialog v-model="dialog" persistent max-width="500px">
+            <v-btn
+              slot="activator"
+              color="pink"
+              dark
+              fixed
+              bottom
+              right
+              fab>
+              <v-icon>add</v-icon>
+            </v-btn>
+          <v-card>
+            <v-card-title>
+              <span class="headline">Añadir cambista</span>
+            </v-card-title>
+            <v-card-text>
+              <v-container grid-list-md>
+                <v-layout wrap>
+                  <v-flex xs12>
+                      <v-text-field label="Nombre" v-model="newCambista.name" required></v-text-field>
+                  </v-flex>
+                  <v-flex xs12 sm6 m6>
+                    <v-text-field label="Longitud" v-model="newCambista.ubicacion.lng" required></v-text-field>
+                  </v-flex>
+                  <v-flex xs12 sm6 md6>
+                    <v-text-field label="Latitud" v-model="newCambista.ubicacion.lat"></v-text-field>
+                  </v-flex>
+                  <v-flex xs12 sm6 m6>
+                    <v-text-field label="Compra" v-model="newCambista.compra" required></v-text-field>
+                  </v-flex>
+                  <v-flex xs12 sm6 md6>
+                    <v-text-field label="Venta" v-model="newCambista.venta"></v-text-field>
+                  </v-flex>
+                  <v-flex xs12 sm6>
+                    <v-select
+                      :items="['dolar', 'peso venezolano', 'bolivar']"
+                      label="Divisa"
+                      v-model="newCambista.divisa"
+                      required
+                    ></v-select>
+                  </v-flex>
+                </v-layout>
+              </v-container>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue darken-1" flat @click.native="dialog = false">Close</v-btn>
+              <v-btn color="blue darken-1" :disabled="loading" flat @click.native="addCambista">Save</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
         <div id="mapa"></div>
       </v-flex>
     </v-container>
@@ -15,6 +65,18 @@ export default {
   data() {
       return {
         mapa: null,
+        dialog: false,
+        newCambista: {
+          name: '',
+          compra: '',
+          venta: '',
+          divisa: '',
+          ubicacion: {
+            lng: '',
+            lat: ''
+          }
+        },
+        newCambistaCopy: {}
       }
   },
   computed: {
@@ -23,6 +85,9 @@ export default {
     },
     cambistas(){
       return this.$store.state.cambistas
+    },
+    loading(){
+      return this.$store.state.loading
     }
   },
   methods: {
@@ -130,26 +195,36 @@ export default {
       })
     },
     addCambista(){
+      this.$store.commit('SET_LOADING', true) 
       const colRef = this.$store.state.db.collection('cambistas').add({
-        compra: 11111,
-        venta: 22222,
+        name: this.newCambista.name,
+        compra: this.newCambista.compra,
+        venta: this.newCambista.venta,
+        divisa: this.newCambista.divisa,
         estado: 1,
-        name: 'SALUDOS DESDE OTRO CLIENTE',
         ubicacion: {
-          lng: -77.006709,
-          lat: -12.1893128
+          lng: this.newCambista.ubicacion.lng,
+          lat: this.newCambista.ubicacion.lat
         }
+      }).then(()=> {
+        this.$store.commit('SET_LOADING', null) 
+        this.resetCambista()
       })
+
+    },
+    resetCambista(){
+      this.dialog = false
+      this.newCambista = {...this.newCambistaCopy}
     }
   },
   mounted(){
+    this.newCambistaCopy = {...this.newCambista}
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(position => {
         this.$store.dispatch('getPosition', {lat: position.coords.latitude, lng: position.coords.longitude})
         .then(()=>{ 
           this.initMapa()
         })
-        // this.room = this.db.collection('rooms').doc(geohash)
       }, error => {
           console.log(error);
       })
@@ -164,7 +239,7 @@ export default {
 <style>
  #mapa {
   min-width:100%;
-  height: 500px;
+  height: 100vh;
   } 
 .marker {
   background-image: url("../assets/me.png");

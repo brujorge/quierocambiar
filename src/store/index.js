@@ -34,8 +34,10 @@ const mutations = {
 }
 const actions = {
   userSignUp({commit, rootState}, payload){
+    commit('SET_LOADING', true)
     firebase.auth().createUserWithEmailAndPassword(payload.email, payload.password)
     .then((firebaseUser)=>{
+      commit('SET_LOADING', false)
       firebaseUser.updateProfile({
         photoURL: "https://i.imgur.com/n5kMEsA.png",
         displayName: payload.username
