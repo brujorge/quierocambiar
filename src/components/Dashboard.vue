@@ -444,9 +444,10 @@ export default {
   max-height:300px;
   overflow: auto;
   background: white;
-  padding:10px 10px 10px 25px;
   font-size:12px;
 }
-
+#search {
+  margin:5px;
+}
 </style>
 
