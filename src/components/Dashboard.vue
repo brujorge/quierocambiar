@@ -1,5 +1,18 @@
 <template>
     <v-container>
+      <v-toolbar
+      floating
+      dense
+      
+    >
+      <div id="search"></div>
+      <v-btn @click="updateUbicacion" icon>
+        <v-icon>my_location</v-icon>
+      </v-btn>
+      <v-btn icon>
+        <v-icon>more_vert</v-icon>
+      </v-btn>
+    </v-toolbar>
       <v-flex>
         <v-dialog v-model="dialog" persistent max-width="500px">
             <v-btn
@@ -79,11 +92,15 @@
             </template>
           </v-list>
         </div>
-        <div id="directions">
-          <ul>
-            <li v-for="direction in directions" :key="direction.distance">{{direction.maneuver.instruction}}</li>
-          </ul>
-        </div>
+        <v-card id="directions">
+          <v-card-title>
+          <div>
+            <ul>
+              <li v-for="direction in directions" :key="direction.distance">{{direction.maneuver.instruction}}</li>
+            </ul>
+          </div>
+          </v-card-title>
+        </v-card>
       </v-flex>
     </v-container>
 </template>
@@ -140,13 +157,12 @@ export default {
           accessToken: mapboxgl.accessToken
         })
       this.mapa.on('style.load',()=>{
-        this.mapa.addControl(this.geocoder)
         this.updateGeocoderProximity()
         this.getCambistas()
         // CONTROLES
         this.mapa.addControl(new mapboxgl.NavigationControl())
         this.mapa.addControl(new mapboxgl.FullscreenControl()); 
-
+        document.getElementById('search').appendChild(this.geocoder.onAdd(this.mapa))
         // POSICION ACTUAL
         var el = document.createElement('div');
         el.className = 'marker';
@@ -159,7 +175,6 @@ export default {
     getRoute(feature){
       this.$http.get(`https://api.mapbox.com/directions/v5/mapbox/driving/${this.ubicacion.lng},${this.ubicacion.lat};${feature.geometry.coordinates[0]},${feature.geometry.coordinates[1]}?steps=true&language=es&access_token=pk.eyJ1Ijoic3VnYXJ0YXl0YSIsImEiOiJjamRrZTc2Z2YxOXh1MnFwcnVwamI2OWY3In0.QSF0ljlTpK5bil7mjTUsNg&geometries=geojson`)
       .then(response => {
-        console.log(response.body);
         var ruta = response.body.routes[0].geometry
         this.directions = response.body.routes[0].legs[0].steps
         this.setRoute(ruta)
@@ -273,7 +288,6 @@ export default {
             this.updateGeocoderProximity()
             var features = this.mapa.queryRenderedFeatures({layers:['cambistas']});
             if (features) {
-              console.log(features);
               this.renderListing(features)
             }
         });
@@ -283,7 +297,6 @@ export default {
             type: 'FeatureCollection',
             features: []
           };
-            console.log(snapshot);
             snapshot.forEach(doc => {
               nuevosCambistas.features.push({
                 type: 'Feature',
@@ -316,7 +329,6 @@ export default {
       }
     },
     setPopup(feature){
-      console.log(feature)
       this.popup
       .setLngLat(feature.geometry.coordinates)
       .setHTML(`<h2>${feature.properties.name}</h2><p>COMPRA: S/${feature.properties.compra}</p><p>COMPRA: S/${feature.properties.venta}</p>`)
@@ -343,6 +355,20 @@ export default {
     resetCambista(){
       this.dialog = false
       this.newCambista = {...this.newCambistaCopy}
+    },
+    updateUbicacion(){
+      if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(position => {
+        this.$store.dispatch('getPosition', {lat: position.coords.latitude, lng: position.coords.longitude})
+        .then(()=>{ 
+          this.mapa.flyTo({center: [this.ubicacion.lng, this.ubicacion.lat], zoom: 14})
+        })
+      }, error => {
+          console.log(error);
+      })
+    } else {
+      alert('Cannot access geolocation');
+    }
     }
   },
   mounted(){
@@ -359,8 +385,6 @@ export default {
     } else {
       alert('Cannot access geolocation');
     }
-    
-    
   }
 }
 </script>
@@ -406,6 +430,11 @@ export default {
     display: block;
     padding: 5px 10px;
     margin: 0;
+}
+.toolbar--floating {
+  z-index:5;
+  position:fixed;
+  left:22%;
 }
 #directions {
   position:fixed;
