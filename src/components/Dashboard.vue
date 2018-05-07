@@ -9,9 +9,6 @@
       <v-btn @click="updateUbicacion" icon>
         <v-icon>my_location</v-icon>
       </v-btn>
-      <v-btn icon>
-        <v-icon>more_vert</v-icon>
-      </v-btn>
     </v-toolbar>
       <v-flex>
         <v-dialog v-model="dialog" persistent max-width="500px">
@@ -85,7 +82,7 @@
           <template v-else v-for="feature in features" >
             <v-list-tile @click="getRoute(feature)" :key="feature.name" @mouseout="popup.remove()" @mouseover="setPopup(feature)" id='feature-listing' class='listing'>
               <v-list-tile-content>
-                <v-list-tile-title v-html="feature.properties.name"></v-list-tile-title>
+                <v-list-tile-title v-html="'<strong>'+feature.properties.name+'</strong>'"></v-list-tile-title>
                 <v-list-tile-sub-title v-html="'COMPRA<strong> S/' +feature.properties.compra+' </strong>'+ 'VENTA <strong> S/' +feature.properties.venta+'</strong>'"></v-list-tile-sub-title>
               </v-list-tile-content>
             </v-list-tile>
@@ -444,6 +441,7 @@ export default {
   max-height:300px;
   overflow: auto;
   background: white;
+  padding:0 5px 10px 10px;
   font-size:12px;
 }
 #search {
