@@ -1,6 +1,6 @@
 <template>
 <v-app green>
-  <v-navigation-drawer v-if="isAuthenticated" app fixed clipped  v-model="drawer">
+  <v-navigation-drawer v-if="isAuthenticated" app fixed absolute temporary clipped  v-model="drawer">
       <v-list dense>
         <v-list-tile to="/">
           <v-list-tile-action>
@@ -30,7 +30,7 @@
   </v-navigation-drawer>
   <v-toolbar clipped-left app color="blue darken-3" dark>
     <v-toolbar-side-icon v-if="isAuthenticated" @click="drawer = !drawer"></v-toolbar-side-icon>
-    <v-toolbar-title>quieroCambiar</v-toolbar-title>
+    <v-toolbar-title>tekambio</v-toolbar-title>
     <v-spacer></v-spacer>
     <v-toolbar-items>
       <template v-if="!isAuthenticated">

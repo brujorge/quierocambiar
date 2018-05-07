@@ -52,7 +52,38 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <!-- <v-dialog v-model="dialog" max-width="290">
+        <v-card>
+          <v-card-title class="headline">{{currentFeature.properties.name}}</v-card-title>
+          <v-card-text>Let Google help apps determine location. This means sending anonymous location data to Google, even when no apps are running.</v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="green darken-1" flat="flat" @click.native="dialog = false">cerrar</v-btn>
+            <v-btn color="green darken-1" flat="flat" @click.native="dialog = false">Agree</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog> -->
         <div id="mapa"></div>
+        <div class="map-overlay">
+          <v-list two-line>
+            <v-list-tile v-if="!features.length" >
+              No hay un cambista cerca.
+            </v-list-tile>
+          <template v-else v-for="feature in features" >
+            <v-list-tile @click="getRoute(feature)" :key="feature.name" @mouseout="popup.remove()" @mouseover="setPopup(feature)" id='feature-listing' class='listing'>
+              <v-list-tile-content>
+                <v-list-tile-title v-html="feature.properties.name"></v-list-tile-title>
+                <v-list-tile-sub-title v-html="'COMPRA<strong> S/' +feature.properties.compra+' </strong>'+ 'VENTA <strong> S/' +feature.properties.venta+'</strong>'"></v-list-tile-sub-title>
+              </v-list-tile-content>
+            </v-list-tile>
+            </template>
+          </v-list>
+        </div>
+        <div id="directions">
+          <ul>
+            <li v-for="direction in directions" :key="direction.distance">{{direction.maneuver.instruction}}</li>
+          </ul>
+        </div>
       </v-flex>
     </v-container>
 </template>
@@ -65,6 +96,10 @@ export default {
   data() {
       return {
         mapa: null,
+        popup: new mapboxgl.Popup({
+          closeButton: false
+        }),
+        geocoder: '',
         dialog: false,
         newCambista: {
           name: '',
@@ -76,7 +111,9 @@ export default {
             lat: ''
           }
         },
-        newCambistaCopy: {}
+        newCambistaCopy: {},
+        features: [],
+        directions: []
       }
   },
   computed: {
@@ -99,10 +136,18 @@ export default {
         zoom: 13,
         style:'mapbox://styles/mapbox/streets-v9'
       })
+      this.geocoder = new MapboxGeocoder({
+          accessToken: mapboxgl.accessToken
+        })
       this.mapa.on('style.load',()=>{
+        this.mapa.addControl(this.geocoder)
+        this.updateGeocoderProximity()
         this.getCambistas()
+        // CONTROLES
         this.mapa.addControl(new mapboxgl.NavigationControl())
-        this.mapa.addControl(new mapboxgl.FullscreenControl());
+        this.mapa.addControl(new mapboxgl.FullscreenControl()); 
+
+        // POSICION ACTUAL
         var el = document.createElement('div');
         el.className = 'marker';
         new mapboxgl.Marker(el)
@@ -111,6 +156,30 @@ export default {
         })
       
     },
+    getRoute(feature){
+      this.$http.get(`https://api.mapbox.com/directions/v5/mapbox/driving/${this.ubicacion.lng},${this.ubicacion.lat};${feature.geometry.coordinates[0]},${feature.geometry.coordinates[1]}?steps=true&language=es&access_token=pk.eyJ1Ijoic3VnYXJ0YXl0YSIsImEiOiJjamRrZTc2Z2YxOXh1MnFwcnVwamI2OWY3In0.QSF0ljlTpK5bil7mjTUsNg&geometries=geojson`)
+      .then(response => {
+        console.log(response.body);
+        var ruta = response.body.routes[0].geometry
+        this.directions = response.body.routes[0].legs[0].steps
+        this.setRoute(ruta)
+      })
+    },
+    setRoute(ruta){
+      this.mapa.getSource('directions-source').setData({
+        "type": "Feature",
+        "properties": {},
+        "geometry": ruta
+      })
+    },
+    updateGeocoderProximity() {
+        if (this.mapa.getZoom() > 5) {
+            var center = this.mapa.getCenter().wrap(); // ensures the longitude falls within -180 to 180 as the Geocoding API doesn't accept values outside this range
+            this.geocoder.setProximity({ longitude: center.lng, latitude: center.lat });
+        } else {
+            this.geocoder.setProximity(null);
+        }
+      },
     getCambistas(){
       var geojson = {
         type: 'FeatureCollection',
@@ -129,11 +198,37 @@ export default {
             estado: doc.data().estado,
             compra: doc.data().compra,
             venta: doc.data().venta,
+            id: doc.id
           }
         })
         })
       })
       .then(()=> {
+        this.mapa.addSource('directions-source',{
+          "type":"geojson",
+          "data":{
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type":"LineString",
+              "coordinates":[
+                [0,0],
+                [0.0001,0.0001]
+                ]
+            }
+          }
+        })
+        this.mapa.addLayer({
+          "id":"directions",
+          "type": "line",
+          "source": "directions-source",
+          "paint":{
+            // "line-color": "#f13430",
+            "line-color": "#1565c0",
+            "line-width": 8,
+            "line-opacity":0.7
+          }
+        })
         this.mapa.loadImage('https://i.imgur.com/saA2A5g.png',(error, image) => {
           if(error) throw error
           this.mapa.addImage('moneybag', image)
@@ -150,24 +245,39 @@ export default {
               "icon-size": 0.1
           }
           });
-          this.mapa.on('click', 'cambistas', (e) => {
+          var simplePopup = new mapboxgl.Popup({ closeButton:false})
+
+          this.mapa.on('mouseenter', 'cambistas', (e) => {
+            this.mapa.getCanvas().style.cursor = 'pointer';
             var coordinates = e.features[0].geometry.coordinates.slice();
             var properties = e.features[0].properties;
             
             while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
                 coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
             }
-            new mapboxgl.Popup()
+            simplePopup
                 .setLngLat(coordinates)
                 .setHTML(`<h2>${properties.name}</h2><p>COMPRA: S/${properties.compra}</p><p>COMPRA: S/${properties.venta}</p>`)
                 .addTo(this.mapa);
           });
-          this.mapa.on('mouseenter', 'places', () => {
-          this.mapa.getCanvas().style.cursor = 'pointer';
-          });
-          this.mapa.on('mouseleave', 'places', () => {
-              map.getCanvas().style.cursor = '';
-          });
+          this.mapa.on('click','cambistas',(e)=>{
+            var feature = e.features[0]
+            this.getRoute(feature)
+          })
+          // EVENTOS DEL MAPA
+          this.mapa.on('mouseleave', 'cambistas', () => {
+            this.mapa.getCanvas().style.cursor = '';
+            simplePopup.remove()
+          })
+          this.mapa.on('moveend',()=> {
+            this.updateGeocoderProximity()
+            var features = this.mapa.queryRenderedFeatures({layers:['cambistas']});
+            if (features) {
+              console.log(features);
+              this.renderListing(features)
+            }
+        });
+          // ACTUALIZAR EN TIEMPO REAL
           this.$store.state.db.collection('cambistas').onSnapshot(snapshot=> {
           var nuevosCambistas = {
             type: 'FeatureCollection',
@@ -186,6 +296,7 @@ export default {
                   estado: doc.data().estado,
                   compra: doc.data().compra,
                   venta: doc.data().venta,
+                  id: doc.id
                 }
               })
             })
@@ -193,6 +304,23 @@ export default {
           })
         })
       })
+    },
+    // ACTUALIZAR LISTADO
+    renderListing(features){
+      this.features = []
+      if(features.length){
+        features.forEach(feature => {
+          var prop = feature.properties
+          this.features.push(feature)
+        })
+      }
+    },
+    setPopup(feature){
+      console.log(feature)
+      this.popup
+      .setLngLat(feature.geometry.coordinates)
+      .setHTML(`<h2>${feature.properties.name}</h2><p>COMPRA: S/${feature.properties.compra}</p><p>COMPRA: S/${feature.properties.venta}</p>`)
+      .addTo(this.mapa)
     },
     addCambista(){
       this.$store.commit('SET_LOADING', true) 
@@ -238,8 +366,11 @@ export default {
 </script>
 <style>
  #mapa {
-  min-width:100%;
-  height: 100vh;
+ position:absolute;
+    left:20%;
+    top:64px;
+    bottom:0;
+    width: 80%;
   } 
 .marker {
   background-image: url("../assets/me.png");
@@ -259,5 +390,34 @@ export default {
 .mapboxgl-popup-content p{
   margin-bottom: 0;
 }
+.map-overlay {
+    position: absolute;
+    width: 20%;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+}
+.map-overlay .listing {
+    overflow: auto;
+    max-height: 100%;
+}
+
+.map-overlay .listing > * {
+    display: block;
+    padding: 5px 10px;
+    margin: 0;
+}
+#directions {
+  position:fixed;
+  bottom:50px;
+  left:22%;
+  width:250px;
+  max-height:300px;
+  overflow: auto;
+  background: white;
+  padding:10px 10px 10px 25px;
+  font-size:12px;
+}
+
 </style>
 
