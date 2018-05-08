@@ -76,6 +76,13 @@
         <div id="mapa"></div>
         <div class="map-overlay">
           <v-list two-line>
+             <v-list-tile>
+              <v-list-tile-content>
+                <v-list-tile-title>
+                  <v-list-tile-sub-title><span>PC: </span><strong>{{promedio.pc}}</strong><span> PV: </span><strong>{{promedio.pv}}</strong></v-list-tile-sub-title>
+                  </v-list-tile-title>
+              </v-list-tile-content>
+            </v-list-tile>
             <v-list-tile v-if="!features.length" >
               No hay un cambista cerca.
             </v-list-tile>
@@ -121,9 +128,13 @@ export default {
           venta: '',
           divisa: '',
           ubicacion: {
-            lng: '',
-            lat: ''
-          }
+            lng: 0,
+            lat: 0,
+          },
+        },
+        promedio: {
+          pc: '',
+          pv: '',
         },
         newCambistaCopy: {},
         features: [],
@@ -319,10 +330,16 @@ export default {
     renderListing(features){
       this.features = []
       if(features.length){
+        let promediopc = 0
+        let promediopv = 0
         features.forEach(feature => {
           var prop = feature.properties
           this.features.push(feature)
+          promediopc+=Number(Math.round(feature.properties.venta + 'e2') + 'e-2')
+          promediopv+=Number(Math.round(feature.properties.compra + 'e2') + 'e-2')
         })
+        this.promedio.pc = Number(Math.round(promediopc/features.length + 'e2') + 'e-2')
+        this.promedio.pv = Number(Math.round(promediopv/features.length + 'e2') + 'e-2')
       }
     },
     setPopup(feature){
